@@ -60,6 +60,7 @@
     <packaging>pom</packaging>
     <modules>
         <module>apache-spark-wordcount-java</module>
+        <module>apache-spark-wordcount-scala</module>
     </modules>
     
     <!-- Propiedades comunes al proyecto -->
