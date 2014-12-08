@@ -29,7 +29,7 @@ import org.apache.spark.sql.api.java.Row;
  *
  * @author Adrian Novegil <adrian.novegil@gmail.com>
  */
-public class SimpleSqlApp {
+public class JSimpleSqlApp {
 
     /**
      * Método principal.
