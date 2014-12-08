@@ -6,11 +6,19 @@
                              http://maven.apache.org/maven-v4_0_0.xsd">
     
     <modelVersion>4.0.0</modelVersion>
-    <groupId>es.devcircus.simplesqlapp</groupId>
-    <artifactId>spark-simple-sql-app</artifactId>
+    
+    <parent>
+        <groupId>es.devcircus</groupId>
+        <artifactId>apache-spark-examples</artifactId>
+        <version>0.1-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <groupId>es.devcircus.sqlgettingstarted</groupId>
+    <artifactId>spark-sql-getting-started-java</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
-    <name>"Spark SQL Test Project"</name>
+    <name>"Spark SQL Getting Started - Java"</name>
   
     <repositories>
         <repository>
@@ -77,14 +85,13 @@
         <dependency>
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-core_2.10</artifactId>
-            <version>1.1.0</version>
+            <version>1.0.0-cdh5.1.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-sql_2.10</artifactId>
             <version>1.1.0</version>
         </dependency>
-
     </dependencies>
     
 </project>

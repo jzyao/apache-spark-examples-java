@@ -13,3 +13,8 @@ hs_err_pid*
 /apache-spark-wordcount-java/target/
 /apache-spark-wordcount-scala/target/
 /apache-spark-simple-sql-app/target/
+/apache-spark-wordcount-java (copia)/target/
+/apache-spark-wordcount-scala (copia)/target/
+/apache-spark-sql-getting-started-java/target/
+/apache-spark-sql-getting-started-scala/target/
+/apache-spark-sql-simple-app/target/
