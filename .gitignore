@@ -12,3 +12,4 @@
 hs_err_pid*
 /apache-spark-wordcount-java/target/
 /apache-spark-wordcount-scala/target/
+/apache-spark-simple-sql-app/target/

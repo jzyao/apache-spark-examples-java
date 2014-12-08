@@ -61,6 +61,7 @@
     <modules>
         <module>apache-spark-wordcount-java</module>
         <module>apache-spark-wordcount-scala</module>
+        <module>apache-spark-simple-sql-app</module>
     </modules>
     
     <!-- Propiedades comunes al proyecto -->
