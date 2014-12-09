@@ -14,17 +14,19 @@
  * this program; see the file COPYING. If not, see
  * <http://www.gnu.org/licenses/>.
  */
-package es.devcircus.sparkwordcount
+package es.devcircus.sqlgettingstarted
 
 import org.apache.spark.SparkContext
 import org.apache.spark.SparkContext._
 import org.apache.spark.SparkConf
 
 /**
- *
+ * Example based on the Scala/Java/Python code from
+ * https://spark.apache.org/docs/latest/sql-programming-guide.html
+ * 
  * @author Adrian Novegil <adrian.novegil@gmail.com>
  */
-object ScalaWordCount {
+object S03ParquetFiles {
   
   /**
    * Método principal.
@@ -33,24 +35,7 @@ object ScalaWordCount {
    */
   def main(args: Array[String]) {
     
-    val sc = new SparkContext(new SparkConf().setAppName("Spark Count"))
+    val sc = new SparkContext(new SparkConf().setAppName("Getting Started"))
     
-    val threshold = args(1).toInt
-    
-    // split each document into words
-    val tokenized = sc.textFile(args(0)).flatMap(_.split(" "))
-    
-    // count the occurrence of each word
-    val wordCounts = tokenized.map((_, 1)).reduceByKey(_ + _)
-    
-    // filter out words with less than threshold occurrences
-    val filtered = wordCounts.filter(_._2 >= threshold)
-    
-    // count characters
-    val charCounts = filtered.flatMap(_._1.toCharArray).map((_, 1)).reduceByKey(_ + _)
-    
-    // print results
-    System.out.println(charCounts.collect().mkString(", "))
-
   }
 }

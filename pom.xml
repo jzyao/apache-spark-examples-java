@@ -63,6 +63,7 @@
         <module>apache-spark-wordcount-scala</module>
         <module>apache-spark-sql-simple-app</module>
         <module>apache-spark-sql-getting-started-java</module>
+        <module>apache-spark-sql-getting-started-scala</module>
     </modules>
     
     <!-- Propiedades comunes al proyecto -->

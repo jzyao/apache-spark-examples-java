@@ -16,7 +16,6 @@
  */
 package es.devcircus.sqlgettingstarted;
 
-import java.io.Serializable;
 import java.util.Arrays;
 import java.util.List;
 
@@ -30,13 +29,15 @@ import org.apache.spark.sql.api.java.JavaSchemaRDD;
 import org.apache.spark.sql.api.java.Row;
 
 /**
+ * Example based on the Scala/Java/Python code from
+ * https://spark.apache.org/docs/latest/sql-programming-guide.html
  *
  * @author Adrian Novegil <adrian.novegil@gmail.com>
  */
 public class JJavaSparkSQL {
 
     public static void main(String[] args) throws Exception {
-        
+
         SparkConf sparkConf = new SparkConf().setAppName("JavaSparkSQL");
         JavaSparkContext ctx = new JavaSparkContext(sparkConf);
         JavaSQLContext sqlCtx = new JavaSQLContext(ctx);
@@ -77,7 +78,7 @@ public class JJavaSparkSQL {
         }
 
         System.out.println("=== Data source: Parquet File ===");
-        
+
         // JavaSchemaRDDs can be saved as parquet files, maintaining the schema information.
         schemaPeople.saveAsParquetFile("people.parquet");
 
