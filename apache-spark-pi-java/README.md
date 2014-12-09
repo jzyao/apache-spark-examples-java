@@ -1,7 +1,7 @@
-Apache Spark Examples - SQL getting started in Scala
-====================================================
+Apache Spark Examples - Pi calculator in Java
+=============================================
 
-El ejemplo se ha implementado en Scala.
+El ejemplo se ha implementado en Java.
 
 Comandos para la construcción del Jar:
 

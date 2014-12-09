@@ -1,9 +1,5 @@
-Apache Spark Examples - Wordcount in Java
-=========================================
-
-Aplicación que cuenta el número de ocurrencias de cada palabra en un corpus y posteriormente
-cuente el número de ocurrencias de cada caracter en aquellas palabras que se consideran
-más populares.
+Apache Spark Examples - SQL getting started in Java
+===================================================
 
 El ejemplo se ha implementado en Java.
 

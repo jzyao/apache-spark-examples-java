@@ -1,5 +1,5 @@
-Apache Spark Examples - SQL getting started in Scala
-====================================================
+Apache Spark Examples - Pi calculator in Scala
+==============================================
 
 El ejemplo se ha implementado en Scala.
 
