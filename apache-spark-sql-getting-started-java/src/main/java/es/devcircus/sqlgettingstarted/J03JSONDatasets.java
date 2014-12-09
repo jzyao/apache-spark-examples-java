@@ -34,74 +34,22 @@ import org.apache.spark.sql.api.java.Row;
  *
  * @author Adrian Novegil <adrian.novegil@gmail.com>
  */
-public class JJavaSparkSQL {
+public class J03JSONDatasets {
 
+    /**
+     * Método principal.
+     *
+     * @param args Argumentos que le pasamos al programa.
+     */
     public static void main(String[] args) throws Exception {
 
-        SparkConf sparkConf = new SparkConf().setAppName("JavaSparkSQL");
+        // Arrancamos el contexto de ejecucion de Apache Spark
+        SparkConf sparkConf = new SparkConf().setAppName("JSON Datasets");
         JavaSparkContext ctx = new JavaSparkContext(sparkConf);
         JavaSQLContext sqlCtx = new JavaSQLContext(ctx);
 
-        System.out.println("=== Data source: RDD ===");
-        // Load a text file and convert each line to a Java Bean.
-        JavaRDD<Person> people = ctx.textFile("data/people.txt").map(
-                new Function<String, Person>() {
-                    @Override
-                    public Person call(String line) {
-                        String[] parts = line.split(",");
-
-                        Person person = new Person();
-                        person.setName(parts[0]);
-                        person.setAge(Integer.parseInt(parts[1].trim()));
-
-                        return person;
-                    }
-                });
-
-        // Apply a schema to an RDD of Java Beans and register it as a table.
-        JavaSchemaRDD schemaPeople = sqlCtx.applySchema(people, Person.class);
-        schemaPeople.registerTempTable("people");
-
-        // SQL can be run over RDDs that have been registered as tables.
-        JavaSchemaRDD teenagers = sqlCtx.sql("SELECT name FROM people WHERE age >= 13 AND age <= 19");
-
-        // The results of SQL queries are SchemaRDDs and support all the normal RDD operations.
-        // The columns of a row in the result can be accessed by ordinal.
-        List<String> teenagerNames = teenagers.map(new Function<Row, String>() {
-            @Override
-            public String call(Row row) {
-                return "Name: " + row.getString(0);
-            }
-        }).collect();
-        for (String name : teenagerNames) {
-            System.out.println(name);
-        }
-
-        System.out.println("=== Data source: Parquet File ===");
-
-        // JavaSchemaRDDs can be saved as parquet files, maintaining the schema information.
-        schemaPeople.saveAsParquetFile("people.parquet");
-
-        // Read in the parquet file created above.
-        // Parquet files are self-describing so the schema is preserved.
-        // The result of loading a parquet file is also a JavaSchemaRDD.
-        JavaSchemaRDD parquetFile = sqlCtx.parquetFile("people.parquet");
-
-        //Parquet files can also be registered as tables and then used in SQL statements.
-        parquetFile.registerTempTable("parquetFile");
-        JavaSchemaRDD teenagers2
-                = sqlCtx.sql("SELECT name FROM parquetFile WHERE age >= 13 AND age <= 19");
-        teenagerNames = teenagers2.map(new Function<Row, String>() {
-            @Override
-            public String call(Row row) {
-                return "Name: " + row.getString(0);
-            }
-        }).collect();
-        for (String name : teenagerNames) {
-            System.out.println(name);
-        }
-
         System.out.println("=== Data source: JSON Dataset ===");
+        
         // A JSON dataset is pointed by path.
         // The path can be either a single text file or a directory storing text files.
         String path = "data/people.json";
@@ -124,12 +72,14 @@ public class JJavaSparkSQL {
 
         // The results of SQL queries are JavaSchemaRDDs and support all the normal RDD operations.
         // The columns of a row in the result can be accessed by ordinal.
-        teenagerNames = teenagers3.map(new Function<Row, String>() {
+        List<String> teenagerNames = teenagers3.map(new Function<Row, String>() {
             @Override
             public String call(Row row) {
                 return "Name: " + row.getString(0);
             }
         }).collect();
+        
+        // Sacamos por pantalla los resultados de la query
         for (String name : teenagerNames) {
             System.out.println(name);
         }
@@ -159,10 +109,13 @@ public class JJavaSparkSQL {
                 return "Name: " + row.getString(0) + ", City: " + row.getString(1);
             }
         }).collect();
+        
+        // Sacamos por pantalla los resultados de la query
         for (String name : nameAndCity) {
             System.out.println(name);
         }
 
+        // Paramos el contexto.
         ctx.stop();
     }
 }

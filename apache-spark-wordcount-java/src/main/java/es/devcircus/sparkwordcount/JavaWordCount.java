@@ -31,6 +31,11 @@ import scala.Tuple2;
  */
 public class JavaWordCount {
 
+    /**
+     * Método principal.
+     *
+     * @param args Argumentos que le pasamos al programa.
+     */
     public static void main(String[] args) {
 
         JavaSparkContext sc = new JavaSparkContext(new SparkConf().setAppName("Spark Count"));
