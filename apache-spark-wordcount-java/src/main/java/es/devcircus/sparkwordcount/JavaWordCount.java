@@ -18,7 +18,7 @@ package es.devcircus.sparkwordcount;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
+import java.util.Iterator;
 
 import org.apache.spark.api.java.*;
 import org.apache.spark.api.java.function.*;
@@ -40,73 +40,66 @@ public class JavaWordCount {
 
         JavaSparkContext sc = new JavaSparkContext(new SparkConf().setAppName("Spark Count"));
 
-        final int threshold = Integer.parseInt(args[1]);
+        final int threshold;
+        threshold = Integer.parseInt(args[1]);
 
         // split each document into words
-        JavaRDD<String> tokenized = sc.textFile(args[0]).flatMap(
-                new FlatMapFunction<String, String>() {
-                    @Override
-                    public Iterable<String> call(String s) {
-                        return Arrays.asList(s.split(" "));
-                    }
-                }
-        );
+        JavaRDD<String> lines = sc.textFile(args[0]);        
+        JavaRDD<String> words = lines.flatMap(line -> Arrays.asList(line.split(" ")).iterator());
+
 
         // count the occurrence of each word
-        JavaPairRDD<String, Integer> counts = tokenized.mapToPair(
-                new PairFunction<String, String, Integer>() {
-                    @Override
-                    public Tuple2<String, Integer> call(String s) {
-                        return new Tuple2<String, Integer>(s, 1);
-                    }
-                }
-        ).reduceByKey(
-                new Function2<Integer, Integer, Integer>() {
-                    @Override
-                    public Integer call(Integer i1, Integer i2) {
-                        return i1 + i2;
-                    }
-                }
-        );
+        JavaPairRDD<String, Integer> counts;
+        counts = words.mapToPair(
+                (String s) -> new Tuple2<String, Integer>(s, 1)).reduceByKey(
+                        (Integer i1, Integer i2) -> i1 + i2);
 
         // filter out words with less than threshold occurrences
         JavaPairRDD<String, Integer> filtered = counts.filter(
-                new Function<Tuple2<String, Integer>, Boolean>() {
-                    @Override
-                    public Boolean call(Tuple2<String, Integer> tup) {
-                        return tup._2() >= threshold;
-                    }
-                }
-        );
+                (Tuple2<String, Integer> tup) -> tup._2() >= threshold);
 
         // count characters
-        JavaPairRDD<Character, Integer> charCounts = filtered.flatMap(
-                new FlatMapFunction<Tuple2<String, Integer>, Character>() {
+        JavaPairRDD<Character, Integer> charCounts;
+        charCounts
+                = filtered.flatMap(
+                        new FlatMapFunction<Tuple2<String, Integer>, Character>() {
+
                     @Override
-                    public Iterable<Character> call(Tuple2<String, Integer> s) {
-                        Collection<Character> chars = new ArrayList<Character>(s._1().length());
+                    public Iterator<Character> call(Tuple2<String, Integer> s) {
+
+                        ArrayList<Character> chars = new ArrayList<>(s._1().length());
                         for (char c : s._1().toCharArray()) {
                             chars.add(c);
                         }
-                        return chars;
-                    }
-                }
-        ).mapToPair(
-                new PairFunction<Character, Character, Integer>() {
-                    @Override
-                    public Tuple2<Character, Integer> call(Character c) {
-                        return new Tuple2<Character, Integer>(c, 1);
-                    }
-                }
-        ).reduceByKey(
-                new Function2<Integer, Integer, Integer>() {
-                    @Override
-                    public Integer call(Integer i1, Integer i2) {
-                        return i1 + i2;
-                    }
-                }
-        );
+                        return chars.iterator();
 
+                    }
+
+                }
+                ).mapToPair((Character c) -> new Tuple2<Character, Integer>(c, 1)).reduceByKey((Integer i1, Integer i2) -> i1 + i2);
+
+//        JavaPairRDD<Character, Integer> charCounts;
+//        charCounts
+//                = filtered.flatMap((Tuple2<String, Integer> s) -> {
+//                    ArrayList<Character> chars = new ArrayList<>(s._1().length());
+//                    for (char c : s._1().toCharArray()) {
+//                        chars.add(c);
+//                    }
+//                    return chars.iterator();
+//                }).mapToPair((Character c) -> new Tuple2<Character, Integer>(c, 1)).reduceByKey((Integer i1, Integer i2) -> i1 + i2);
+//        charCounts
+//                = filtered.flatMap(
+//                        new FlatMapFunction<Tuple2<String, Integer>, Character>() {
+//                    @Override
+//                    public Iterable<Character> call(Tuple2<String, Integer> s) {
+//                        Collection<Character> chars = new ArrayList<>(s._1().length());
+//                        for (char c : s._1().toCharArray()) {
+//                            chars.add(c);
+//                        }
+//                        return chars;
+//                    }
+//                }
+//                ).mapToPair((Character c) -> new Tuple2<Character, Integer>(c, 1)).reduceByKey((Integer i1, Integer i2) -> i1 + i2);
         // print results
         System.out.println(charCounts.collect());
 
