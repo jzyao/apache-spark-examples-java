@@ -18,6 +18,7 @@ hs_err_pid*
 /apache-spark-sql-getting-started-java/target/
 /apache-spark-sql-getting-started-scala/target/
 /apache-spark-sql-simple-app/target/
+/apache-spark-sql-simple-app/result.out
 /apache-spark-sql-getting-started-java/people.parquet/
 /apache-spark-sql-getting-started-scala/people.parquet/
 /apache-spark-pi-java/target/
