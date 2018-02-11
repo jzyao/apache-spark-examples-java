@@ -17,20 +17,21 @@
 package es.devcircus.sqlgettingstarted;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
-import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.Function;
-import org.apache.spark.sql.api.java.DataType;
+import org.apache.spark.api.java.function.MapFunction;
 
-import org.apache.spark.sql.api.java.JavaSQLContext;
-import org.apache.spark.sql.api.java.JavaSchemaRDD;
-import org.apache.spark.sql.api.java.Row;
-import org.apache.spark.sql.api.java.StructField;
-import org.apache.spark.sql.api.java.StructType;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Encoders;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.RowFactory;
+
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
+import org.apache.spark.sql.types.StructType;
+import org.apache.spark.sql.SparkSession;
 
 /**
  * Example based on the Scala/Java/Python code from
@@ -40,71 +41,66 @@ import org.apache.spark.sql.api.java.StructType;
  */
 public class J01ProgSpecifyingSch {
 
+    private static String PEOPLE_QUERY = "SELECT name FROM people";
+    
+    /**
+     * 
+     * @param args
+     * @throws Exception 
+     */
     public static void main(String[] args) throws Exception {
 
         // Arrancamos el contexto de ejecucion de Apache Spark
-        SparkConf sparkConf = new SparkConf().setAppName("Programmatically Specifying the Schema");
-        JavaSparkContext ctx = new JavaSparkContext(sparkConf);
-        JavaSQLContext sqlCtx = new JavaSQLContext(ctx);
+        SparkSession spark = SparkSession
+                .builder()
+                .appName("Programmatically Specifying the Schema")
+                .getOrCreate();
 
-        System.out.println("=== Data source: RDD ===");
+        // Create an RDD
+        JavaRDD<String> peopleRDD = spark.sparkContext()
+                .textFile(args[0], 1)
+                .toJavaRDD();
 
-        // Cargamos el contenido del fichero en una coleccion de string donde cada
-        // uno se corresponde con una linea del fichero.
-        JavaRDD<String> people = ctx.textFile("data/people.txt");
-
-        // Nombre de los atributos del esquema
+        // The schema is encoded in a string
         String schemaString = "name age";
-
-        // A continuacion generamos el schema basandonos en los atributos definidos
-        // en la linea acnterior.
+        // Generate the schema based on the string of schema
         List<StructField> fields = new ArrayList<>();
-        // Recorremos la lista de atributos.
         for (String fieldName : schemaString.split(" ")) {
-            // Para cada uno de los atributos definimos un campo de tipo String.
-            fields.add(DataType.createStructField(fieldName, DataType.StringType, true));
+            StructField field = DataTypes.createStructField(fieldName, DataTypes.StringType, true);
+            fields.add(field);
         }
-        // Cremos el tipo de dato a partir de los campos creados.
-        StructType schema = DataType.createStructType(fields);
+        StructType schema = DataTypes.createStructType(fields);
 
-        // Convertimos las lineas que creamos como String a partir del fichero de
-        // texto a instancias de filas. En este punto aun no podemos mapear al
-        // esquema concreto.
-        JavaRDD<Row> rowRDD = people.map(
-                new Function<String, Row>() {
-                    public Row call(String record) throws Exception {
-                        String[] fields = record.split(",");
-                        return Row.create(fields[0], fields[1].trim());
-                    }
-                });
+        // Convert records of the RDD (people) to Rows
+        JavaRDD<Row> rowRDD = peopleRDD.map((Function<String, Row>) record -> {
+            String[] attributes = record.split(",");
+            return RowFactory.create(attributes[0], attributes[1].trim());
+        });
 
-        // Aplicamos el esquema que hemos creado a las lineas que hemos creado en
-        // el paso anterior..
-        JavaSchemaRDD peopleSchemaRDD = sqlCtx.applySchema(rowRDD, schema);
+        // Apply the schema to the RDD
+        Dataset<Row> peopleDataFrame = spark.createDataFrame(rowRDD, schema);
 
-        // Registramos el esquema como tabla en el sistema, a partir de ahí podremos
-        // lanzar querys.
-        peopleSchemaRDD.registerTempTable("people");
+        // Creates a temporary view using the DataFrame
+        peopleDataFrame.createOrReplaceTempView("people");
 
-        // Una vez hemos registrados los RDDs como tabla ya podemos lanzar consultas
-        // SQL contra la tabla.
-        JavaSchemaRDD results = sqlCtx.sql("SELECT name FROM people WHERE age >= 13 AND age <= 19");
+        // SQL can be run over a temporary view created using DataFrames
+        Dataset<Row> results = spark.sql(PEOPLE_QUERY);
 
-        // The results of SQL queries are SchemaRDDs and support all the normal 
-        // RDD operations.
-        // The columns of a row in the result can be accessed by ordinal.
-        List<String> names = results.map(new Function<Row, String>() {
-            public String call(Row row) {
-                return "Name: " + row.getString(0);
-            }
-        }).collect();
-
-        // Sacamos por pantalla los resultados de la query
-        for (String name : names) {
-            System.out.println(name);
-        }
+        // The results of SQL queries are DataFrames and support all the normal RDD operations
+        // The columns of a row in the result can be accessed by field index or by field name
+        Dataset<String> namesDS = results.map(
+                (MapFunction<Row, String>) row -> "Name: " + row.getString(0),
+                Encoders.STRING());
+        namesDS.show();
+        // +-------------+
+        // |        value|
+        // +-------------+
+        // |Name: Michael|
+        // |   Name: Andy|
+        // | Name: Justin|
+        // +-------------+
 
         // Paramos el contexto.
-        ctx.stop();
+        spark.stop();
     }
 }

@@ -16,17 +16,13 @@
  */
 package es.devcircus.sqlgettingstarted;
 
-import java.util.Arrays;
-import java.util.List;
-
-import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.api.java.function.Function;
-
-import org.apache.spark.sql.api.java.JavaSQLContext;
-import org.apache.spark.sql.api.java.JavaSchemaRDD;
-import org.apache.spark.sql.api.java.Row;
+import org.apache.spark.api.java.function.MapFunction;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.Encoder;
+import org.apache.spark.sql.Encoders;
+import org.apache.spark.sql.SparkSession;
 
 /**
  * Example based on the Scala/Java/Python code from
@@ -36,54 +32,66 @@ import org.apache.spark.sql.api.java.Row;
  */
 public class J00InferringSchReflection {
 
+    private static String PEOPLE_QUERY = "SELECT name FROM people WHERE age >= 13 AND age <= 19";
+    
+    /**
+     * 
+     * @param args
+     * @throws Exception 
+     */
     public static void main(String[] args) throws Exception {
 
         // Arrancamos el contexto de ejecucion de Apache Spark
-        SparkConf sparkConf = new SparkConf().setAppName("Inferring the Schema Using Reflection");
-        JavaSparkContext ctx = new JavaSparkContext(sparkConf);
-        JavaSQLContext sqlCtx = new JavaSQLContext(ctx);
-
-        System.out.println("=== Data source: RDD ===");
+        SparkSession spark = SparkSession
+                .builder()
+                .appName("Inferring the Schema Using Reflection")
+                .getOrCreate();
 
         // Cargamos los datos a partir de un fichero de texto y los mapeamos a 
         // instancia de tipo Person.
-        JavaRDD<Person> people = ctx.textFile("data/people.txt").map(
-                new Function<String, Person>() {
-                    @Override
-                    public Person call(String line) {
-                        String[] parts = line.split(",");
-
-                        Person person = new Person();
-                        person.setName(parts[0]);
-                        person.setAge(Integer.parseInt(parts[1].trim()));
-
-                        return person;
-                    }
+        JavaRDD<Person> peopleRDD = spark.read()
+                .textFile(args[0])
+                .javaRDD()
+                .map((String line) -> {
+                    String[] parts = line.split(",");
+                    Person person = new Person();
+                    person.setName(parts[0]);
+                    person.setAge(Integer.parseInt(parts[1].trim()));
+                    return person;
                 });
 
-        // Creamos el esquema a partir de los datos importados y lo registramos
-        // como una tabla.
-        JavaSchemaRDD schemaPeople = sqlCtx.applySchema(people, Person.class);
-        schemaPeople.registerTempTable("people");
+        // Apply a schema to an RDD of JavaBeans to get a DataFrame
+        Dataset<Row> peopleDF = spark.createDataFrame(peopleRDD, Person.class);
+        // Register the DataFrame as a temporary view
+        peopleDF.createOrReplaceTempView("people");
 
         // SQL can be run over RDDs that have been registered as tables.
-        JavaSchemaRDD teenagers = sqlCtx.sql("SELECT name FROM people WHERE age >= 13 AND age <= 19");
+        Dataset<Row> teenagers = spark.sql(PEOPLE_QUERY);
 
-        // The results of SQL queries are SchemaRDDs and support all the normal RDD operations.
-        // The columns of a row in the result can be accessed by ordinal.
-        List<String> teenagerNames = teenagers.map(new Function<Row, String>() {
-            @Override
-            public String call(Row row) {
-                return "Name: " + row.getString(0);
-            }
-        }).collect();
+        // The columns of a row in the result can be accessed by field index
+        Encoder<String> stringEncoder = Encoders.STRING();
+        Dataset<String> teenagerNamesByIndexDF = teenagers.map(
+                (MapFunction<Row, String>) row -> "Name: " + row.getString(0),
+                stringEncoder);
+        teenagerNamesByIndexDF.show();
+        // +------------+
+        // |       value|
+        // +------------+
+        // |Name: Justin|
+        // +------------+
 
-        // Sacamos por pantalla los resultados de la query
-        for (String name : teenagerNames) {
-            System.out.println(name);
-        }
-        
+        // or by field name
+        Dataset<String> teenagerNamesByFieldDF = teenagers.map(
+                (MapFunction<Row, String>) row -> "Name: " + row.<String>getAs("name"),
+                stringEncoder);
+        teenagerNamesByFieldDF.show();
+        // +------------+
+        // |       value|
+        // +------------+
+        // |Name: Justin|
+        // +------------+
+
         // Paramos el contexto.
-        ctx.stop();
+        spark.stop();
     }
 }

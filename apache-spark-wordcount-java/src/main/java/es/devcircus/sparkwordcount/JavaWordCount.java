@@ -18,10 +18,8 @@ package es.devcircus.sparkwordcount;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
 
 import org.apache.spark.api.java.*;
-import org.apache.spark.api.java.function.*;
 import org.apache.spark.SparkConf;
 import scala.Tuple2;
 
@@ -38,6 +36,7 @@ public class JavaWordCount {
      */
     public static void main(String[] args) {
 
+        // Configure Spark
         JavaSparkContext sc = new JavaSparkContext(new SparkConf().setAppName("Spark Count"));
 
         final int threshold;
@@ -46,7 +45,6 @@ public class JavaWordCount {
         // split each document into words
         JavaRDD<String> lines = sc.textFile(args[0]);        
         JavaRDD<String> words = lines.flatMap(line -> Arrays.asList(line.split(" ")).iterator());
-
 
         // count the occurrence of each word
         JavaPairRDD<String, Integer> counts;
@@ -61,47 +59,15 @@ public class JavaWordCount {
         // count characters
         JavaPairRDD<Character, Integer> charCounts;
         charCounts
-                = filtered.flatMap(
-                        new FlatMapFunction<Tuple2<String, Integer>, Character>() {
-
-                    @Override
-                    public Iterator<Character> call(Tuple2<String, Integer> s) {
-
-                        ArrayList<Character> chars = new ArrayList<>(s._1().length());
-                        for (char c : s._1().toCharArray()) {
-                            chars.add(c);
-                        }
-                        return chars.iterator();
-
+                = filtered.flatMap((Tuple2<String, Integer> s) -> {
+                    ArrayList<Character> chars = new ArrayList<>(s._1().length());
+                    for (char c : s._1().toCharArray()) {
+                        chars.add(c);
                     }
-
-                }
-                ).mapToPair((Character c) -> new Tuple2<Character, Integer>(c, 1)).reduceByKey((Integer i1, Integer i2) -> i1 + i2);
-
-//        JavaPairRDD<Character, Integer> charCounts;
-//        charCounts
-//                = filtered.flatMap((Tuple2<String, Integer> s) -> {
-//                    ArrayList<Character> chars = new ArrayList<>(s._1().length());
-//                    for (char c : s._1().toCharArray()) {
-//                        chars.add(c);
-//                    }
-//                    return chars.iterator();
-//                }).mapToPair((Character c) -> new Tuple2<Character, Integer>(c, 1)).reduceByKey((Integer i1, Integer i2) -> i1 + i2);
-//        charCounts
-//                = filtered.flatMap(
-//                        new FlatMapFunction<Tuple2<String, Integer>, Character>() {
-//                    @Override
-//                    public Iterable<Character> call(Tuple2<String, Integer> s) {
-//                        Collection<Character> chars = new ArrayList<>(s._1().length());
-//                        for (char c : s._1().toCharArray()) {
-//                            chars.add(c);
-//                        }
-//                        return chars;
-//                    }
-//                }
-//                ).mapToPair((Character c) -> new Tuple2<Character, Integer>(c, 1)).reduceByKey((Integer i1, Integer i2) -> i1 + i2);
+                    return chars.iterator();
+        }).mapToPair((Character c) -> new Tuple2<Character, Integer>(c, 1)).reduceByKey((Integer i1, Integer i2) -> i1 + i2);
+        
         // print results
         System.out.println(charCounts.collect());
-
     }
 }

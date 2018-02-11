@@ -16,12 +16,11 @@
  */
 package es.devcircus.simplesqlapp;
 
-import java.util.List;
-import org.apache.spark.SparkConf;
-import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.sql.api.java.JavaSQLContext;
-import org.apache.spark.sql.api.java.JavaSchemaRDD;
-import org.apache.spark.sql.api.java.Row;
+import org.apache.spark.api.java.function.MapFunction;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Encoders;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparkSession;
 
 /**
  * Example based on the Scala/Python code from
@@ -31,6 +30,14 @@ import org.apache.spark.sql.api.java.Row;
  */
 public class JSimpleSqlApp {
 
+    private static final String BASE_DATA_PATH = "spark-examples/apache-spark-sql-simple-app/data/";
+    private static final String PARQUET_FILE_NAME = "wiki_parquet";
+    private static final String FULL_PARQUET_FILE_PATH = BASE_DATA_PATH + PARQUET_FILE_NAME;
+
+    // Queries
+    private static final String QUERY_COUNT = "SELECT COUNT(*) FROM wikiData";
+    private static final String QUERY_COUNT_BY_USERNAME = "SELECT username, COUNT(*) AS cnt FROM wikiData WHERE username <> '' GROUP BY username ORDER BY cnt DESC LIMIT 10";
+
     /**
      * Método principal.
      *
@@ -38,79 +45,68 @@ public class JSimpleSqlApp {
      */
     public static void main(String[] args) {
 
-        /**
-         * Once you have launched the Spark shell, the next step is to create a
-         * SQLContext. A SQLConext wraps the SparkContext, which you used in the
-         * previous lesson, and adds functions for working with structured data.
-         */
-        // Seteamos el nombre del programa. Este nombre se usara en el cluster
-        // para su ejecución.
-        SparkConf sparkConf = new SparkConf().setAppName("SparkSqlTestProject");
-        // Creamos un contexto de spark.
-        JavaSparkContext ctx = new JavaSparkContext(sparkConf);
-        // Creamos un contexto SQL en el que lanzaremos las querys.
-        JavaSQLContext sqlCtx = new JavaSQLContext(ctx);
+        // Arrancamos el contexto de ejecucion de Apache Spark
+        SparkSession spark = SparkSession
+                .builder()
+                .appName("SparkSqlTestProject")
+                .getOrCreate();
 
-        /**
-         * Now we can load a set of data in that is stored in the Parquet
-         * format. Parquet is a self-describing columnar format. Since it is
-         * self-describing, Spark SQL will automatically be able to infer all of
-         * the column names and their datatypes. For this exercise we have
-         * provided a set of data that contains all of the pages on wikipedia
-         * that contain the word “berkeley”. You can load this data using the
-         * parquetFile method provided by the SQLContext.
-         */
-        JavaSchemaRDD wikiData = sqlCtx.parquetFile("data/wiki_parquet");
+        // Read in the Parquet file created above.
+        // Parquet files are self-describing so the schema is preserved
+        // The result of loading a parquet file is also a DataFrame
+        Dataset<Row> parquetFileDF = spark.read().parquet(FULL_PARQUET_FILE_PATH);
 
         /**
          * The result of loading in a parquet file is a SchemaRDD. A SchemaRDD
          * has all of the functions of a normal RDD. For example, lets figure
          * out how many records are in the data set.
          */
-        Long countResult = wikiData.count();
+        Long countResult = parquetFileDF.count();
         // Mostramos el resultado por pantalla.
         System.out.println("Resultado del conteo del RDD...: " + countResult);
+        // Resultado del conteo del RDD...: 39365
 
-        /**
-         * In addition to standard RDD operatrions, SchemaRDDs also have extra
-         * information about the names and types of the columns in the dataset.
-         * This extra schema information makes it possible to run SQL queries
-         * against the data after you have registered it as a table. Below is an
-         * example of counting the number of records using a SQL query. Elmétodo
-         * registerAsTable se ha deprecado y se ha substituido por el método
-         * registerTempTable.
-         * http://mail-archives.apache.org/mod_mbox/spark-commits/201408.mbox/%3C540f0c8a261b4d1c88241e854f367258@git.apache.org%3E
-         */
-        //wikiData.registerAsTable("wikiData");
-        wikiData.registerTempTable("wikiData");
-
-        List<Row> rows = sqlCtx.sql("SELECT COUNT(*) FROM wikiData").collect();
-
-        /**
-         * The result of SQL queries is always a collection of Row objects. From
-         * a row object you can access the individual columns of the result.
-         */
-        System.out.println("Resultado del conteo de la query...: " + rows.get(0).getLong(0));
+        // Parquet files can also be used to create a temporary view and then used in SQL statements
+        parquetFileDF.createOrReplaceTempView("wikiData");
+        Dataset<Row> rows = spark.sql(QUERY_COUNT);
+        
+        Dataset<Long> countValue = rows.map(
+                (MapFunction<Row, Long>) row -> row.getLong(0),
+                Encoders.LONG());
+        countValue.show();
+        // +-----+
+        // |value|
+        // +-----+
+        // |39365|
+        // +-----+
 
         /**
          * SQL can be a powerfull tool from performing complex aggregations. For
          * example, the following query returns the top 10 usersnames by the
          * number of pages they created.
          */
-        rows = sqlCtx.sql("SELECT username, COUNT(*) AS cnt FROM wikiData WHERE username <> '' GROUP BY username ORDER BY cnt DESC LIMIT 10").collect();
+        rows = spark.sql(QUERY_COUNT_BY_USERNAME);
 
-        for (int i = 0; i < rows.size(); i++) {
-            System.out.print("Fila " + i + " ..: ");
-            // Recuperamos la fila actual.
-            Row current = rows.get(i);
-            // Iteramos sobre las columnas de la fila.
-            for (int j = 0; j < current.length(); j++) {
-                System.out.print(current.get(j).toString());
-                if (j < current.length() - 1) {
-                    System.out.print(", ");
-                }
-            }
-            System.out.println();
-        }
+        Dataset<String> namesDS = rows.map(
+                (MapFunction<Row, String>) row -> row.toString(),
+                Encoders.STRING());
+        namesDS.show();        
+        // +--------------------+
+        // |               value|
+        // +--------------------+
+        // |    [Waacstats,2003]|
+        // |       [Cydebot,949]|
+        // |      [BattyBot,939]|
+        // |         [Yobot,890]|
+        // |        [Addbot,853]|
+        // |       [Monkbot,668]|
+        // |[ChrisGualtieri,438]|
+        // |   [RjwilmsiBot,387]|
+        // |    [OccultZone,377]|
+        // |    [ClueBot NG,353]|
+        // +--------------------+
+
+        // Paramos el contexto.
+        spark.stop();
     }
 }

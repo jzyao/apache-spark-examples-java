@@ -3,90 +3,79 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
                              http://maven.apache.org/maven-v4_0_0.xsd">
-             
-<!--       
-    A continuación se muestra la estructura del esqueleto del fichero pom.xml 
-    del proyecto.
-    <project xmlns="http://maven.apache.org/POM/4.0.0"
-             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-             xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
-                      http://maven.apache.org/xsd/maven-4.0.0.xsd">
-        <modelVersion>4.0.0</modelVersion>
 
-        ##  The Basics  ##
-        <groupId>...</groupId>
-        <artifactId>...</artifactId>
-        <version>...</version>
-        <packaging>...</packaging>
-        <dependencies>...</dependencies>
-        <parent>...</parent>
-        <dependencyManagement>...</dependencyManagement>
-        <modules>...</modules>
-        <properties>...</properties>
-
-        ##  Build Settings  ##
-        <build>...</build>
-        <reporting>...</reporting>
-
-        ##  More Project Information  ##
-        <name>...</name>
-        <description>...</description>
-        <url>...</url>
-        <inceptionYear>...</inceptionYear>
-        <licenses>...</licenses>
-        <organization>...</organization>
-        <developers>...</developers>
-        <contributors>...</contributors>
-
-            ## Environment Settings ##
-            <issueManagement>...</issueManagement>
-            <ciManagement>...</ciManagement>
-            <mailingLists>...</mailingLists>
-            <scm>...</scm>
-            <prerequisites>...</prerequisites>
-            <repositories>...</repositories>
-            <pluginRepositories>...</pluginRepositories>
-            <distributionManagement>...</distributionManagement>
-            <profiles>...</profiles>
-        </project>
-    -->
-                                 
     <modelVersion>4.0.0</modelVersion>
     
     <!-- The basics -->
     <groupId>es.devcircus</groupId>
-    <artifactId>apache-spark-examples</artifactId>
-    <version>0.1-SNAPSHOT</version>    
+    <artifactId>apache-spark-examples-java</artifactId>    
+    <version>0.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
     
     <modules>
-        <module>apache-spark-wordcount-java</module>
-        <module>apache-spark-wordcount-scala</module>
+        <module>apache-spark-wordcount-java</module>      
+        <module>apache-spark-pi-java</module>        
+        <module>apache-spark-sql-getting-started-java</module>  
         <module>apache-spark-sql-simple-app</module>
-        <module>apache-spark-sql-getting-started-java</module>
-        <module>apache-spark-sql-getting-started-scala</module>
-        <module>apache-spark-pi-java</module>
-        <module>apache-spark-pi-scala</module>
     </modules>
     
+    <repositories>
+        <repository>
+            <id>maven-hadoop</id>
+            <name>Hadoop Releases</name>
+            <url>https://repository.cloudera.com/content/repositories/releases/</url>
+        </repository>
+        <repository>
+            <id>cloudera-repos</id>
+            <name>Cloudera Repos</name>
+            <url>https://repository.cloudera.com/artifactory/cloudera-repos/</url>
+        </repository>
+    </repositories>
+
     <!-- Propiedades comunes al proyecto -->
     <properties>
-        <jdk.version>1.7</jdk.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <maven.compiler.source>1.8</maven.compiler.source> 
+        <maven.compiler.target>1.8</maven.compiler.target> 
     </properties>
     
     <!-- Build Settings -->
     <build>
         <plugins>
+            <!-- Maven Compiler Plugin -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.7.0</version>
                 <configuration>
-                    <source>1.8</source>
-                    <target>1.8</target>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
                     <encoding>${project.build.sourceEncoding}</encoding>
                 </configuration>
+            </plugin>            
+            <!-- Maven Assembly Plugin -->
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>2.4.1</version>
+                <configuration>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                    <finalName>${pom.artifactId}</finalName>
+                    <appendAssemblyId>false</appendAssemblyId>
+                </configuration>                                                
+                <executions>
+                    <execution>
+                        <id>make-assembly</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
+            <!-- Maven Resource Plugin -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-resources-plugin</artifactId>
@@ -101,11 +90,6 @@
     <!-- Dependencies -->
     <dependencies>
         <dependency>
-            <groupId>org.scala-lang</groupId>
-            <artifactId>scala-library</artifactId>
-            <version>2.12.4</version>
-        </dependency>
-        <dependency>
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-core_2.11</artifactId>
             <version>2.2.1</version>
@@ -113,7 +97,7 @@
     </dependencies>
     
     <!-- More Project Information -->
-    <name>Apache Spark Examples</name>
+    <name>Apache Spark Examples in Java</name>
     <developers>
         <developer>
             <id>adrian.novegil</id>
@@ -122,4 +106,5 @@
             <organization>DevCircus</organization>
         </developer>       
     </developers>
+    
 </project>

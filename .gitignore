@@ -22,3 +22,5 @@ hs_err_pid*
 /apache-spark-sql-getting-started-scala/people.parquet/
 /apache-spark-pi-java/target/
 /apache-spark-pi-scala/target/
+/target/
+spark-warehouse

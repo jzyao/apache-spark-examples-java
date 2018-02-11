@@ -16,17 +16,9 @@
  */
 package es.devcircus.sqlgettingstarted;
 
-import java.util.Arrays;
-import java.util.List;
-
-import org.apache.spark.SparkConf;
-import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.api.java.function.Function;
-
-import org.apache.spark.sql.api.java.JavaSQLContext;
-import org.apache.spark.sql.api.java.JavaSchemaRDD;
-import org.apache.spark.sql.api.java.Row;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparkSession;
 
 /**
  * Example based on the Scala/Java/Python code from
@@ -36,86 +28,43 @@ import org.apache.spark.sql.api.java.Row;
  */
 public class J03JSONDatasets {
 
+    private static String PEOPLE_QUERY = "SELECT name FROM people WHERE age >= 13 AND age <= 19";
+
     /**
-     * Método principal.
-     *
-     * @param args Argumentos que le pasamos al programa.
+     * 
+     * @param args
+     * @throws Exception 
      */
     public static void main(String[] args) throws Exception {
 
         // Arrancamos el contexto de ejecucion de Apache Spark
-        SparkConf sparkConf = new SparkConf().setAppName("JSON Datasets");
-        JavaSparkContext ctx = new JavaSparkContext(sparkConf);
-        JavaSQLContext sqlCtx = new JavaSQLContext(ctx);
+        SparkSession spark = SparkSession
+                .builder()
+                .appName("Parquet Files")
+                .getOrCreate();
 
-        System.out.println("=== Data source: JSON Dataset ===");
-        
-        // A JSON dataset is pointed by path.
-        // The path can be either a single text file or a directory storing text files.
-        String path = "data/people.json";
-        // Create a JavaSchemaRDD from the file(s) pointed by path
-        JavaSchemaRDD peopleFromJsonFile = sqlCtx.jsonFile(path);
+        // $example on:basic_parquet_example$
+        Dataset<Row> people = spark.read().json(args[0]);
 
-        // Because the schema of a JSON dataset is automatically inferred, to write queries,
-        // it is better to take a look at what is the schema.
-        peopleFromJsonFile.printSchema();
-        // The schema of people is ...
+        // The inferred schema can be visualized using the printSchema() method
+        people.printSchema();
         // root
-        //  |-- age: IntegerType
-        //  |-- name: StringType
+        //  |-- age: long (nullable = true)
+        //  |-- name: string (nullable = true)
 
-        // Register this JavaSchemaRDD as a table.
-        peopleFromJsonFile.registerTempTable("people");
+        // Creates a temporary view using the DataFrame
+        people.createOrReplaceTempView("people");
 
-        // SQL statements can be run by using the sql methods provided by sqlCtx.
-        JavaSchemaRDD teenagers3 = sqlCtx.sql("SELECT name FROM people WHERE age >= 13 AND age <= 19");
-
-        // The results of SQL queries are JavaSchemaRDDs and support all the normal RDD operations.
-        // The columns of a row in the result can be accessed by ordinal.
-        List<String> teenagerNames = teenagers3.map(new Function<Row, String>() {
-            @Override
-            public String call(Row row) {
-                return "Name: " + row.getString(0);
-            }
-        }).collect();
-        
-        // Sacamos por pantalla los resultados de la query
-        for (String name : teenagerNames) {
-            System.out.println(name);
-        }
-
-        // Alternatively, a JavaSchemaRDD can be created for a JSON dataset represented by
-        // a RDD[String] storing one JSON object per string.
-        List<String> jsonData = Arrays.asList(
-                "{\"name\":\"Yin\",\"address\":{\"city\":\"Columbus\",\"state\":\"Ohio\"}}");
-        JavaRDD<String> anotherPeopleRDD = ctx.parallelize(jsonData);
-        JavaSchemaRDD peopleFromJsonRDD = sqlCtx.jsonRDD(anotherPeopleRDD);
-
-        // Take a look at the schema of this new JavaSchemaRDD.
-        peopleFromJsonRDD.printSchema();
-        // The schema of anotherPeople is ...
-        // root
-        //  |-- address: StructType
-        //  |    |-- city: StringType
-        //  |    |-- state: StringType
-        //  |-- name: StringType
-
-        peopleFromJsonRDD.registerTempTable("people2");
-
-        JavaSchemaRDD peopleWithCity = sqlCtx.sql("SELECT name, address.city FROM people2");
-        List<String> nameAndCity = peopleWithCity.map(new Function<Row, String>() {
-            @Override
-            public String call(Row row) {
-                return "Name: " + row.getString(0) + ", City: " + row.getString(1);
-            }
-        }).collect();
-        
-        // Sacamos por pantalla los resultados de la query
-        for (String name : nameAndCity) {
-            System.out.println(name);
-        }
+        // SQL statements can be run by using the sql methods provided by spark
+        Dataset<Row> namesDF = spark.sql(PEOPLE_QUERY);
+        namesDF.show();
+        // +------+
+        // |  name|
+        // +------+
+        // |Justin|
+        // +------+
 
         // Paramos el contexto.
-        ctx.stop();
+        spark.stop();
     }
 }
